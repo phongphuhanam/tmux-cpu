@@ -19,7 +19,10 @@ print_cpu_temp() {
       val="$(sensors)"
     fi
     echo "$val" | sed -e 's/^Tccd/Core /' | awk -v format="$cpu_temp_format$cpu_temp_unit" '/^Core [0-9]+/ {gsub("[^0-9.]", "", $3); sum+=$3; n+=1} END {printf(format, sum/n)}'
-  fi
+	
+	elif command_exists "vcgencmd"; then
+		vcgencmd measure_temp | sed -r 's/[^0-9.]*//g'
+	fi
 }
 
 main() {
