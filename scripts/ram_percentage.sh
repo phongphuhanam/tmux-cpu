@@ -15,7 +15,10 @@ sum_macos_vm_stats() {
 print_ram_percentage() {
   ram_percentage_format=$(get_tmux_option "@ram_percentage_format" "$ram_percentage_format")
 
-  if is_apple_silicon && command_exists "macmon"; then
+  if is_jetson; then
+    # Jetson has unified memory - RAM already reflects both CPU and GPU use.
+    jetson_stat ram_pct | awk -v format="$ram_percentage_format" '{printf format, $1}'
+  elif is_apple_silicon && command_exists "macmon"; then
     # Reuses the same cached macmon call as the temp/power stats instead of
     # spawning a separate vm_stat.
     local json used total

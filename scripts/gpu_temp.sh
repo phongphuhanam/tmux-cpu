@@ -12,7 +12,12 @@ print_gpu_temp() {
   gpu_temp_format=$(get_tmux_option "@gpu_temp_format" "$gpu_temp_format")
   gpu_temp_unit=$(get_tmux_option "@gpu_temp_unit" "$gpu_temp_unit")
 
-  if command_exists "nvidia-smi"; then
+  if is_jetson; then
+    jetson_stat gpu_temp |
+      awk -v format="$gpu_temp_format$gpu_temp_unit" -v unit="$gpu_temp_unit" \
+        '{if (unit == "F") printf format, $1*9/5+32; else printf format, $1}'
+    return
+  elif command_exists "nvidia-smi"; then
     loads=$(cached_eval nvidia-smi)
   elif command_exists "cuda-smi"; then
     loads=$(cached_eval cuda-smi)

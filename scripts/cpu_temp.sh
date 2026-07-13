@@ -11,7 +11,17 @@ cpu_temp_unit="C"
 print_cpu_temp() {
   cpu_temp_format=$(get_tmux_option "@cpu_temp_format" "$cpu_temp_format")
   cpu_temp_unit=$(get_tmux_option "@cpu_temp_unit" "$cpu_temp_unit")
-  if command_exists "sensors"; then
+  if is_jetson; then
+    local temp_c
+    temp_c="$(jetson_stat cpu_temp)"
+    if [ -n "$temp_c" ]; then
+      if [[ "$cpu_temp_unit" == F ]]; then
+        echo "$temp_c" | awk -v format="$cpu_temp_format$cpu_temp_unit" '{printf(format, $1*9/5+32)}'
+      else
+        echo "$temp_c" | awk -v format="$cpu_temp_format$cpu_temp_unit" '{printf(format, $1)}'
+      fi
+    fi
+  elif command_exists "sensors"; then
     local val
     if [[ "$cpu_temp_unit" == F ]]; then
       val="$(sensors -f)"

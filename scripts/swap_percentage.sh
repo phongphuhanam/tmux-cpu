@@ -10,7 +10,9 @@ swap_percentage_format="%3.1f%%"
 print_swap_percentage() {
   swap_percentage_format=$(get_tmux_option "@swap_percentage_format" "$swap_percentage_format")
 
-  if is_apple_silicon && command_exists "macmon"; then
+  if is_jetson; then
+    jetson_stat swap_pct | awk -v format="$swap_percentage_format" '{printf format, $1}'
+  elif is_apple_silicon && command_exists "macmon"; then
     # Reuses the same cached macmon call as the temp/power/ram stats.
     local json used total
     json="$(macmon_json)"

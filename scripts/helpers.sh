@@ -40,6 +40,10 @@ is_linux() {
   [ "$(uname)" == "Linux" ]
 }
 
+is_jetson() {
+  is_linux && [ -f /etc/nv_tegra_release ]
+}
+
 is_cygwin() {
   command -v WMIC &>/dev/null
 }
@@ -106,6 +110,53 @@ command_exists() {
 # that cost once. Set up with: macmon serve --install
 macmon_json() {
   command_exists "curl" && cached_eval curl -s "http://127.0.0.1:9090/json"
+}
+
+# Emits one Jetson stat, preferring jetson_stats (jtop) when installed since
+# it also exposes rail temps that tegrastats doesn't print on some boards;
+# falls back to tegrastats (the tool jetson_stats itself wraps) on a fresh
+# system without jetson_stats set up. Neither needs sudo.
+# field: cpu_pct | gpu_pct | ram_pct | swap_pct | cpu_temp | gpu_temp
+jetson_stat() {
+  local field="$1"
+  local helpers_dir
+  helpers_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if command_exists "jtop"; then
+    local json
+    json="$(cached_eval "$helpers_dir/jtop_stats.py")"
+    [ -n "$json" ] || return
+    echo "$json" | grep -Eo "\"$field\":[0-9.-]+" | grep -Eo '[0-9.-]+$'
+    return
+  fi
+  command_exists "tegrastats" || return
+  local line
+  line="$(cached_eval "$helpers_dir/tegrastats_line.sh")"
+  [ -n "$line" ] || return
+  case "$field" in
+  cpu_pct)
+    echo "$line" | grep -Eo 'CPU \[[^]]+\]' | grep -Eo '[0-9]+%@' | grep -Eo '[0-9]+' |
+      awk '{s+=$1; n++} END {if (n>0) printf "%.2f", s/n; else print 0}'
+    ;;
+  gpu_pct)
+    # sed capture, not grep -Eo twice: "GR3D_FREQ" itself contains a digit,
+    # so re-grepping [0-9]+ out of the whole match would also grab that "3".
+    echo "$line" | sed -En 's/.*GR3D_FREQ ([0-9]+)%.*/\1/p'
+    ;;
+  ram_pct)
+    echo "$line" | grep -Eo 'RAM [0-9]+/[0-9]+MB' | grep -Eo '[0-9]+/[0-9]+' |
+      awk -F/ '{if ($2>0) printf "%.2f", 100*$1/$2; else print 0}'
+    ;;
+  swap_pct)
+    echo "$line" | grep -Eo 'SWAP [0-9]+/[0-9]+MB' | grep -Eo '[0-9]+/[0-9]+' |
+      awk -F/ '{if ($2>0) printf "%.2f", 100*$1/$2; else print 0}'
+    ;;
+  cpu_temp)
+    echo "$line" | grep -Eo 'CPU@[0-9.]+C' | grep -Eo '[0-9.]+'
+    ;;
+  gpu_temp)
+    echo "$line" | grep -Eo 'GPU@[0-9.]+C' | grep -Eo '[0-9.]+'
+    ;;
+  esac
 }
 
 get_tmp_dir() {

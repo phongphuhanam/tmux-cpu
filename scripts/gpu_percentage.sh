@@ -10,7 +10,9 @@ gpu_percentage_format="%3.1f%%"
 print_gpu_percentage() {
   gpu_percentage_format=$(get_tmux_option "@gpu_percentage_format" "$gpu_percentage_format")
 
-  if command_exists "nvidia-smi"; then
+  if is_jetson; then
+    jetson_stat gpu_pct | awk -v format="$gpu_percentage_format" '{printf format, $1}'
+  elif command_exists "nvidia-smi"; then
     loads=$(cached_eval nvidia-smi)
     echo "$loads" | sed -nr 's/.*\s([0-9]+)%.*/\1/p' | awk -v format="$gpu_percentage_format" '{sum+=$1; n+=1} END {printf format, sum/n}'
   elif command_exists "cuda-smi"; then

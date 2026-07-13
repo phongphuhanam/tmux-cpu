@@ -10,7 +10,9 @@ cpu_percentage_format="%3.1f%%"
 print_cpu_percentage() {
   cpu_percentage_format=$(get_tmux_option "@cpu_percentage_format" "$cpu_percentage_format")
 
-  if is_apple_silicon && command_exists "macmon"; then
+  if is_jetson; then
+    jetson_stat cpu_pct | awk -v format="$cpu_percentage_format" '{printf format, $1}'
+  elif is_apple_silicon && command_exists "macmon"; then
     # Reuses the same cached macmon call as the temp/power stats instead of
     # spawning iostat's separate ~1s blocking sample.
     macmon_json |
