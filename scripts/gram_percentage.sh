@@ -14,6 +14,12 @@ print_gram_percentage() {
     loads=$(cached_eval nvidia-smi | sed -nr 's/.*\s([0-9]+)MiB\s*\/\s*([0-9]+)MiB.*/\1 \2/p')
   elif command_exists "cuda-smi"; then
     loads=$(cached_eval cuda-smi | sed -nr 's/.*\s([0-9.]+) of ([0-9.]+) MB.*/\1 \2/p' | awk '{print $2-$1" "$2}')
+  elif is_apple_silicon && command_exists "ioreg"; then
+    # Apple Silicon has no dedicated VRAM: GPU and CPU share one pool of
+    # unified memory, so "GPU RAM" here is the driver's allocated share of it.
+    used=$(cached_eval ioreg -r -d 1 -c IOAccelerator | grep -Eo '"In use system memory"=[0-9]+' | grep -Eo '[0-9]+$' | awk '{sum+=$1} END {print sum}')
+    total=$(sysctl -n hw.memsize)
+    loads="$used $total"
   else
     echo "No GPU"
     return
