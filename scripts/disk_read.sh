@@ -5,7 +5,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/helpers.sh
 source "$CURRENT_DIR/helpers.sh"
 
-disk_read_format="%.1fMB/s"
+disk_read_format="%.1fMBs"
 
 print_disk_read() {
   disk_read_format=$(get_tmux_option "@disk_read_format" "$disk_read_format")

@@ -5,7 +5,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/helpers.sh
 source "$CURRENT_DIR/helpers.sh"
 
-disk_write_format="%.1fMB/s"
+disk_write_format="%.1fMBs"
 
 print_disk_write() {
   disk_write_format=$(get_tmux_option "@disk_write_format" "$disk_write_format")
