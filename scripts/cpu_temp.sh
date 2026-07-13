@@ -34,6 +34,8 @@ print_cpu_temp() {
         echo "$temp_c" | awk -v format="$cpu_temp_format$cpu_temp_unit" '{printf(format, $1)}'
       fi
     fi
+  elif command_exists "vcgencmd"; then
+    vcgencmd measure_temp | sed -r 's/[^0-9.]*//g'
   fi
 }
 
