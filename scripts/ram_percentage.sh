@@ -15,7 +15,15 @@ sum_macos_vm_stats() {
 print_ram_percentage() {
   ram_percentage_format=$(get_tmux_option "@ram_percentage_format" "$ram_percentage_format")
 
-  if command_exists "free"; then
+  if is_apple_silicon && command_exists "macmon"; then
+    # Reuses the same cached macmon call as the temp/power stats instead of
+    # spawning a separate vm_stat.
+    local json used total
+    json="$(macmon_json)"
+    used="$(echo "$json" | grep -Eo '"ram_usage":[0-9]+' | grep -Eo '[0-9]+$')"
+    total="$(echo "$json" | grep -Eo '"ram_total":[0-9]+' | grep -Eo '[0-9]+$')"
+    echo "$used $total" | awk -v format="$ram_percentage_format" '{printf format, 100*$1/$2}'
+  elif command_exists "free"; then
     cached_eval free | awk -v format="$ram_percentage_format" '$1 ~ /Mem/ {printf(format, 100*$3/$2)}'
   elif command_exists "vm_stat"; then
     # page size of 4096 bytes

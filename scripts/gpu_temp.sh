@@ -17,7 +17,7 @@ print_gpu_temp() {
   elif command_exists "cuda-smi"; then
     loads=$(cached_eval cuda-smi)
   elif is_apple_silicon && command_exists "macmon"; then
-    cached_eval macmon pipe -s 1 |
+    macmon_json |
       grep -Eo '"gpu_temp_avg":[0-9.]+' |
       grep -Eo '[0-9.]+$' |
       awk -v format="$gpu_temp_format$gpu_temp_unit" -v unit="$gpu_temp_unit" \

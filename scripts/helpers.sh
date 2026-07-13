@@ -100,6 +100,14 @@ command_exists() {
   command -v "$command" &>/dev/null
 }
 
+# Fetches from a `macmon serve` daemon (localhost:9090, default port) rather
+# than spawning `macmon pipe`, which costs ~0.8s of real CPU time per call
+# just to set up/tear down its IOReport subscription - the daemon amortizes
+# that cost once. Set up with: macmon serve --install
+macmon_json() {
+  command_exists "curl" && cached_eval curl -s "http://127.0.0.1:9090/json"
+}
+
 get_tmp_dir() {
   local tmpdir
   tmpdir="${TMPDIR:-${TMP:-${TEMP:-/tmp}}}"

@@ -24,7 +24,7 @@ print_cpu_temp() {
     # internally, but works unprivileged - powermetrics itself requires
     # root and, on current macOS, has no working sampler for CPU die temp.
     local temp_c
-    temp_c="$(cached_eval macmon pipe -s 1 | grep -Eo '"cpu_temp_avg":[0-9.]+' | grep -Eo '[0-9.]+$')"
+    temp_c="$(macmon_json | grep -Eo '"cpu_temp_avg":[0-9.]+' | grep -Eo '[0-9.]+$')"
     if [ -n "$temp_c" ]; then
       if [[ "$cpu_temp_unit" == F ]]; then
         echo "$temp_c" | awk -v format="$cpu_temp_format$cpu_temp_unit" '{printf(format, $1*9/5+32)}'

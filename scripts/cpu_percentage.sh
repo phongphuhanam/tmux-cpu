@@ -10,7 +10,14 @@ cpu_percentage_format="%3.1f%%"
 print_cpu_percentage() {
   cpu_percentage_format=$(get_tmux_option "@cpu_percentage_format" "$cpu_percentage_format")
 
-  if command_exists "iostat"; then
+  if is_apple_silicon && command_exists "macmon"; then
+    # Reuses the same cached macmon call as the temp/power stats instead of
+    # spawning iostat's separate ~1s blocking sample.
+    macmon_json |
+      grep -Eo '"cpu_usage_pct":[0-9.]+' |
+      grep -Eo '[0-9.]+$' |
+      awk -v format="$cpu_percentage_format" '{printf format, $1*100}'
+  elif command_exists "iostat"; then
 
     if is_linux_iostat; then
       cached_eval iostat -c 1 2 | sed '/^\s*$/d' | tail -n 1 | awk -v format="$cpu_percentage_format" '{usage=100-$NF} END {printf(format, usage)}' | sed 's/,/./'

@@ -32,6 +32,7 @@ cpu_interpolation=(
   "\#{cpu_power}"
   "\#{gpu_power}"
   "\#{sys_power}"
+  "\#{swap_percentage}"
 )
 cpu_commands=(
   "#($CURRENT_DIR/scripts/cpu_percentage.sh)"
@@ -61,6 +62,7 @@ cpu_commands=(
   "#($CURRENT_DIR/scripts/cpu_power.sh)"
   "#($CURRENT_DIR/scripts/gpu_power.sh)"
   "#($CURRENT_DIR/scripts/sys_power.sh)"
+  "#($CURRENT_DIR/scripts/swap_percentage.sh)"
 )
 
 set_tmux_option() {

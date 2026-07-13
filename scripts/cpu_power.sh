@@ -11,7 +11,7 @@ print_cpu_power() {
   cpu_power_format=$(get_tmux_option "@cpu_power_format" "$cpu_power_format")
 
   if is_apple_silicon && command_exists "macmon"; then
-    cached_eval macmon pipe -s 1 |
+    macmon_json |
       grep -Eo '"cpu_power":[0-9.]+' |
       grep -Eo '[0-9.]+$' |
       awk -v format="$cpu_power_format" '{printf format, $1}'
