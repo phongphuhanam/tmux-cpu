@@ -241,7 +241,10 @@ cached_eval_locked() {
   [ -d "$tmpdir" ] || mkdir -p "$tmpdir" && chmod 0700 "$tmpdir"
   lockfile="$tmpdir/.lock-$key"
   (
-    flock -w 3 200 || exit 0
+    # Wait longer than the slowest known wrapped command (tegrastats can
+    # take over 1.5s to produce its first sample on weaker boards) so
+    # waiters don't give up right as the lock holder is about to finish.
+    flock -w 8 200 || exit 0
     val="$(get_cache_val "$key")"
     [ -n "$val" ] || put_cache_val "$key" "$("$command" "${@:3}")" >/dev/null
   ) 200>"$lockfile"
