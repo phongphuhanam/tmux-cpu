@@ -112,26 +112,35 @@ macmon_json() {
   command_exists "curl" && cached_eval curl -s "http://127.0.0.1:9090/json"
 }
 
-# Emits one Jetson stat, preferring jetson_stats (jtop) when installed since
-# it also exposes rail temps that tegrastats doesn't print on some boards;
-# falls back to tegrastats (the tool jetson_stats itself wraps) on a fresh
-# system without jetson_stats set up. Neither needs sudo.
+# Emits one Jetson stat, preferring tegrastats (ships with every L4T image)
+# since it's ~8x cheaper per call than going through jetson_stats: a one-shot
+# jtop connection costs ~0.5s CPU / ~2s wall (python startup + IPC handshake
+# with the jtop service) vs tegrastats' ~0.05s CPU / ~0.3s wall - noticeable
+# on an embedded board when it repeats every status-interval. jtop is only
+# used as a fallback for boards without tegrastats on PATH. Neither needs
+# sudo.
 # field: cpu_pct | gpu_pct | ram_pct | swap_pct | cpu_temp | gpu_temp
 jetson_stat() {
   local field="$1"
   local helpers_dir
   helpers_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  if command_exists "jtop"; then
-    local json
-    json="$(cached_eval "$helpers_dir/jtop_stats.py")"
-    [ -n "$json" ] || return
-    echo "$json" | grep -Eo "\"$field\":[0-9.-]+" | grep -Eo '[0-9.-]+$'
+  if command_exists "tegrastats"; then
+    local line
+    line="$(cached_eval "$helpers_dir/tegrastats_line.sh")"
+    [ -n "$line" ] || return
+    jetson_stat_from_tegrastats "$field" "$line"
     return
   fi
-  command_exists "tegrastats" || return
-  local line
-  line="$(cached_eval "$helpers_dir/tegrastats_line.sh")"
-  [ -n "$line" ] || return
+  command_exists "jtop" || return
+  local json
+  json="$(cached_eval "$helpers_dir/jtop_stats.py")"
+  [ -n "$json" ] || return
+  echo "$json" | grep -Eo "\"$field\":[0-9.-]+" | grep -Eo '[0-9.-]+$'
+}
+
+jetson_stat_from_tegrastats() {
+  local field="$1"
+  local line="$2"
   case "$field" in
   cpu_pct)
     echo "$line" | grep -Eo 'CPU \[[^]]+\]' | grep -Eo '[0-9]+%@' | grep -Eo '[0-9]+' |
