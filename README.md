@@ -66,6 +66,13 @@ which is noticeable when repeated every `status-interval` on an embedded
 board. `jtop` is only used as a fallback on boards without `tegrastats` on
 `$PATH`. Neither requires `sudo`.
 
+On weaker boards (e.g. Jetson Nano), `tegrastats` itself can take over a
+second - sometimes past 1.5s - just to produce its first sample, versus tens
+of milliseconds on a faster SoC like Xavier. The script waits up to 5s for
+that first sample; with a tighter timeout this showed up as stats going
+blank intermittently (tegrastats killed mid-startup, no output produced at
+all), most often under load or on the slower boards.
+
 ## Usage
 
 Add any of the supported format strings (see below) to the existing `status-right` tmux option.
