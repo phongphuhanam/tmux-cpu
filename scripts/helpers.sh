@@ -162,3 +162,27 @@ cached_eval() {
     echo -n "$val"
   fi
 }
+
+# Turns a monotonically increasing counter (e.g. cumulative disk bytes read)
+# into a per-second rate, by diffing against the previous call's value and
+# timestamp. Unlike cached_eval's TTL cache, this state persists indefinitely
+# between calls rather than expiring - it's the last observed sample, not a
+# cache of a repeatable command.
+rate_from_counter() {
+  local key="$1"
+  local current="$2"
+  local statefile now prev
+  statefile="$(get_tmp_dir)/rate_$key"
+  now="$(get_time)"
+  prev="$([ -f "$statefile" ] && cat "$statefile")"
+  [ -d "$(get_tmp_dir)" ] || mkdir -p "$(get_tmp_dir)"
+  echo "$now $current" >"$statefile"
+  awk -v prev="$prev" -v now="$now" -v current="$current" '
+    BEGIN {
+      if (split(prev, p, " ") == 2 && (now - p[1]) > 0 && current >= p[2]) {
+        printf "%.4f", (current - p[2]) / (now - p[1])
+      } else {
+        print "0"
+      }
+    }'
+}
