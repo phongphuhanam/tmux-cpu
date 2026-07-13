@@ -24,6 +24,10 @@ is_osx() {
   [ "$(uname)" == "Darwin" ]
 }
 
+is_apple_silicon() {
+  is_osx && [ "$(uname -m)" == "arm64" ]
+}
+
 is_freebsd() {
   [ "$(uname)" == "FreeBSD" ]
 }
