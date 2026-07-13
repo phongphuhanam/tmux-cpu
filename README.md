@@ -50,6 +50,22 @@ For OSX, `cuda-smi` is required instead (but only shows GPU memory use rather th
 If "No GPU" is displayed, it means the script was not able to find `nvidia-smi`/`cuda-smi`.
 Please make sure the appropriate command is installed and in the `$PATH`.
 
+### NVIDIA Jetson
+
+On Jetson boards, `#{cpu_percentage}`, `#{gpu_percentage}`, `#{ram_percentage}`,
+`#{swap_percentage}`, `#{cpu_temp}`, and `#{gpu_temp}` are read directly from
+the on-chip counters instead of `nvidia-smi`/`lm-sensors`/etc. RAM is treated
+as unified memory (shared between CPU and GPU), matching Jetson's
+architecture.
+
+`tegrastats` (ships with every L4T image) is preferred over
+[`jetson_stats`](https://github.com/rbonghi/jetson_stats)'s `jtop` command,
+since it's much cheaper per call: a one-shot `jtop` connection costs ~0.5s
+CPU / ~2s wall (Python startup + IPC handshake with the `jtop` service),
+which is noticeable when repeated every `status-interval` on an embedded
+board. `jtop` is only used as a fallback on boards without `tegrastats` on
+`$PATH`. Neither requires `sudo`.
+
 ## Usage
 
 Add any of the supported format strings (see below) to the existing `status-right` tmux option.
@@ -73,6 +89,7 @@ This is done by introducing 12 new format strings that can be added to
 - `#{ram_percentage}` - will show RAM percentage (averaged across cores)
 - `#{ram_bg_color}` - will change the background color based on the RAM percentage
 - `#{ram_fg_color}` - will change the foreground color based on the RAM percentage
+- `#{swap_percentage}` - will show swap percentage
 - `#{cpu_temp_icon}` - will display a CPU temperature status icon
 - `#{cpu_temp}` - will show CPU temperature (averaged across cores)
 - `#{cpu_temp_bg_color}` - will change the background color based on the CPU temperature
