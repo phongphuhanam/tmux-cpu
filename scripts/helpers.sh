@@ -216,11 +216,36 @@ cached_eval() {
   command="$1"
   key="$(basename "$command")"
   val="$(get_cache_val "$key")"
-  if [ -z "$val" ]; then
-    put_cache_val "$key" "$($command "${@:2}")"
-  else
+  if [ -n "$val" ]; then
     echo -n "$val"
+  elif command_exists "flock"; then
+    cached_eval_locked "$key" "$command" "${@:2}"
+  else
+    put_cache_val "$key" "$($command "${@:2}")"
   fi
+}
+
+# tmux spawns each status-bar script as its own process, so several can miss
+# a stale cache at the same instant and all re-run the same command in
+# parallel - wasteful when the command is expensive. flock serializes the
+# miss: whichever process gets the lock first refreshes the cache; the rest
+# wait briefly, then read that fresh cache instead of also re-running it.
+# Only used when flock is available (Linux; not preinstalled on macOS) -
+# without it, cached_eval falls back to the original racy-but-harmless
+# behavior.
+cached_eval_locked() {
+  local key="$1"
+  local command="$2"
+  local tmpdir lockfile val
+  tmpdir="$(get_tmp_dir)"
+  [ -d "$tmpdir" ] || mkdir -p "$tmpdir" && chmod 0700 "$tmpdir"
+  lockfile="$tmpdir/.lock-$key"
+  (
+    flock -w 3 200 || exit 0
+    val="$(get_cache_val "$key")"
+    [ -n "$val" ] || put_cache_val "$key" "$("$command" "${@:3}")" >/dev/null
+  ) 200>"$lockfile"
+  get_cache_val "$key"
 }
 
 # Turns a monotonically increasing counter (e.g. cumulative disk bytes read)
