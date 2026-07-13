@@ -19,14 +19,12 @@ print_cpu_temp() {
       val="$(sensors)"
     fi
     echo "$val" | sed -e 's/^Tccd/Core /' | awk -v format="$cpu_temp_format$cpu_temp_unit" '/^Core [0-9]+/ {gsub("[^0-9.]", "", $3); sum+=$3; n+=1} END {printf(format, sum/n)}'
-  elif is_apple_silicon && command_exists "powermetrics"; then
-    # Apple Silicon exposes no user-readable thermal sensor; powermetrics
-    # needs root. Use non-interactive sudo so this fails silently (like the
-    # no-sensors case above) unless the user added a NOPASSWD sudoers rule
-    # for powermetrics.
+  elif is_apple_silicon && command_exists "macmon"; then
+    # macmon reads the same private IOReport API powermetrics uses
+    # internally, but works unprivileged - powermetrics itself requires
+    # root and, on current macOS, has no working sampler for CPU die temp.
     local temp_c
-    temp_c="$(cached_eval sudo -n powermetrics -i1 -n1 --samplers smc 2>/dev/null |
-      sed -n 's/^CPU die temperature: \([0-9.]*\).*/\1/p')"
+    temp_c="$(cached_eval macmon pipe -s 1 | grep -Eo '"cpu_temp_avg":[0-9.]+' | grep -Eo '[0-9.]+$')"
     if [ -n "$temp_c" ]; then
       if [[ "$cpu_temp_unit" == F ]]; then
         echo "$temp_c" | awk -v format="$cpu_temp_format$cpu_temp_unit" '{printf(format, $1*9/5+32)}'

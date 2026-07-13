@@ -16,6 +16,13 @@ print_gpu_temp() {
     loads=$(cached_eval nvidia-smi)
   elif command_exists "cuda-smi"; then
     loads=$(cached_eval cuda-smi)
+  elif is_apple_silicon && command_exists "macmon"; then
+    cached_eval macmon pipe -s 1 |
+      grep -Eo '"gpu_temp_avg":[0-9.]+' |
+      grep -Eo '[0-9.]+$' |
+      awk -v format="$gpu_temp_format$gpu_temp_unit" -v unit="$gpu_temp_unit" \
+        '{if (unit == "F") printf format, $1*9/5+32; else printf format, $1}'
+    return
   else
     echo "No GPU"
     return
